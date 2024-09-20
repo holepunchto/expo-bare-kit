@@ -29,13 +29,11 @@
     "url": "https://github.com/holepunchto/expo-bare-kit/issues"
   },
   "homepage": "https://github.com/holepunchto/expo-bare-kit#readme",
-  "dependencies": {
-    "react-native-bare-kit": "^0.0.12"
-  },
   "peerDependencies": {
     "expo": ">=47.0.0",
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "react-native-bare-kit": "*"
   },
   "devDependencies": {
     "standard": "^17.1.2"
