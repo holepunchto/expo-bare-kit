@@ -1,6 +1,6 @@
 {
   "name": "expo-bare-kit",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Bare Kit for Expo",
   "exports": {
     ".": {
