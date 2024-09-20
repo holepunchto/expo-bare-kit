@@ -1,0 +1,43 @@
+{
+  "name": "expo-bare-kit",
+  "version": "0.0.0",
+  "description": "Bare Kit for Expo",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./package": "./package.json",
+    "./plugin": "./plugin/index.js"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "app.plugin.js",
+    "plugin"
+  ],
+  "scripts": {
+    "test": "standard"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/holepunchto/expo-bare-kit.git"
+  },
+  "author": "Holepunch",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/holepunchto/expo-bare-kit/issues"
+  },
+  "homepage": "https://github.com/holepunchto/expo-bare-kit#readme",
+  "dependencies": {
+    "react-native-bare-kit": "^0.0.12"
+  },
+  "peerDependencies": {
+    "expo": ">=47.0.0",
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "standard": "^17.1.2"
+  }
+}
