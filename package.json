@@ -33,7 +33,7 @@
     "expo": ">=47.0.0",
     "react": "*",
     "react-native": "*",
-    "react-native-bare-kit": "*"
+    "react-native-bare-kit": ">=0.1.0"
   },
   "devDependencies": {
     "standard": "^17.1.2"

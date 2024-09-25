@@ -96,7 +96,7 @@ function withProjectFiles (config, opts = {}) {
       '@implementation NotificationService\n' +
       '\n' +
       '- (instancetype)init {\n' +
-      `  return [super initWithResource:@"${path.basename(worklet, path.extname(worklet))}" ofType:@"${path.extname(worklet).substring(1)}" inBundle:[NSBundle mainBundle]];\n` +
+      `  return [super initWithResource:@"${path.basename(worklet, path.extname(worklet))}" ofType:@"${path.extname(worklet).substring(1)}" arguments:nil configuration:nil];\n` +
       '}\n' +
       '\n' +
       '@end\n'
