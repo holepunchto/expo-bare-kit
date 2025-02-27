@@ -2,14 +2,8 @@
   "name": "expo-bare-kit",
   "version": "0.0.2",
   "description": "Bare Kit for Expo",
-  "exports": {
-    ".": {
-      "types": "./index.d.ts",
-      "default": "./index.js"
-    },
-    "./package": "./package.json",
-    "./plugin": "./plugin/index.js"
-  },
+  "main": "index.js",
+  "types": "index.d.ts",
   "files": [
     "index.js",
     "index.d.ts",
