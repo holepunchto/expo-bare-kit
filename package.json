@@ -1,6 +1,6 @@
 {
   "name": "expo-bare-kit",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Bare Kit for Expo",
   "main": "index.js",
   "types": "index.d.ts",
