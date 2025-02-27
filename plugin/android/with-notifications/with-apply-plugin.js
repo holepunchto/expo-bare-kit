@@ -1,8 +1,11 @@
-const { WarningAggregator, withAppBuildGradle } = require('@expo/config-plugins')
+const {
+  WarningAggregator,
+  withAppBuildGradle
+} = require('@expo/config-plugins')
 
 const googleServicesPlugin = 'com.google.gms.google-services'
 
-module.exports = function withApplyPlugin (config, opts = {}) {
+module.exports = function withApplyPlugin(config, opts = {}) {
   return withAppBuildGradle(config, (config) => {
     const { modResults } = config
 
@@ -21,11 +24,8 @@ module.exports = function withApplyPlugin (config, opts = {}) {
   })
 }
 
-function addGoogleServicesPlugin (buildscript) {
+function addGoogleServicesPlugin(buildscript) {
   if (buildscript.includes(googleServicesPlugin)) return buildscript
 
-  return (
-    `apply plugin: "${googleServicesPlugin}"\n` +
-    buildscript
-  )
+  return `apply plugin: "${googleServicesPlugin}"\n` + buildscript
 }

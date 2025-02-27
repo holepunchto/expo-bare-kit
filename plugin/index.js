@@ -2,10 +2,8 @@ const { withPlugins } = require('@expo/config-plugins')
 
 const withNotificationsIos = require('./ios/with-notifications')
 
-module.exports = function withBareKit (config, opts = {}) {
-  const {
-    ios = {}
-  } = opts
+module.exports = function withBareKit(config, opts = {}) {
+  const { ios = {} } = opts
 
   const plugins = []
 

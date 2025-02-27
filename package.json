@@ -17,7 +17,7 @@
     "plugin"
   ],
   "scripts": {
-    "test": "standard"
+    "test": "prettier . --check"
   },
   "repository": {
     "type": "git",
@@ -33,9 +33,10 @@
     "expo": ">=47.0.0",
     "react": "*",
     "react-native": "*",
-    "react-native-bare-kit": ">=0.1.0"
+    "react-native-bare-kit": ">=0.5.0"
   },
   "devDependencies": {
-    "standard": "^17.1.2"
+    "prettier": "^3.5.2",
+    "prettier-config-standard": "^7.0.0"
   }
 }

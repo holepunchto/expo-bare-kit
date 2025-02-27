@@ -2,8 +2,8 @@ const { withEntitlementsPlist } = require('@expo/config-plugins')
 
 const applicationGroups = 'com.apple.security.application-groups'
 
-module.exports = function withAppGroupPermissions (config, opts = {}) {
-  return withEntitlementsPlist(config, config => {
+module.exports = function withAppGroupPermissions(config, opts = {}) {
+  return withEntitlementsPlist(config, (config) => {
     const { modResults } = config
 
     if (!Array.isArray(modResults[applicationGroups])) {

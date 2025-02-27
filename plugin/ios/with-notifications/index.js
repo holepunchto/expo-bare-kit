@@ -5,7 +5,7 @@ const withApsEnvironment = require('./with-aps-environment')
 const withNotificationServiceExtension = require('./with-notification-service-extension')
 const withPodTarget = require('./with-pod-target')
 
-module.exports = function withNotifications (config, opts = {}) {
+module.exports = function withNotifications(config, opts = {}) {
   return withPlugins(config, [
     [withAppGroupPermissions, opts],
     [withApsEnvironment, opts],
