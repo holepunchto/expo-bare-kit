@@ -3,5 +3,12 @@ module.exports = {
     notifications: {
       targetName: 'NotificationServiceExtension'
     }
+  },
+  android: {
+    notifications: {
+      serviceName: 'MessagingService',
+      channelId: 'default',
+      channelName: 'Notifications'
+    }
   }
 }
