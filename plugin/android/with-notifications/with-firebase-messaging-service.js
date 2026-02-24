@@ -10,9 +10,10 @@ module.exports = function withFirebaseMessagingService(config, opts = {}) {
       const {
         worklet,
         channelId = defaults.channelId,
-        channelName = defaults.channelName,
-        serviceName = defaults.serviceName
+        channelName = defaults.channelName
       } = opts
+
+      const serviceName = 'MessagingService'
 
       const packageName = config.android.package
       const packagePath = packageName.replace(/\./g, '/')

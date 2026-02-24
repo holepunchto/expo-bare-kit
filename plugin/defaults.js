@@ -6,7 +6,6 @@ module.exports = {
   },
   android: {
     notifications: {
-      serviceName: 'MessagingService',
       channelId: 'default',
       channelName: 'Notifications'
     }
