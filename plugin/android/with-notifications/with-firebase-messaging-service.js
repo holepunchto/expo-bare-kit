@@ -16,8 +16,9 @@ module.exports = function withFirebaseMessagingService(config, opts = {}) {
 
       const packageName = config.android.package
       const packagePath = packageName.replace(/\./g, '/')
+      const workletBasename = path.basename(worklet)
 
-      const dest = path.join(
+      const javaDest = path.join(
         config.modRequest.platformProjectRoot,
         'app',
         'src',
@@ -26,60 +27,78 @@ module.exports = function withFirebaseMessagingService(config, opts = {}) {
         packagePath
       )
 
-      await fs.mkdir(dest, { recursive: true })
+      const assetsDest = path.join(
+        config.modRequest.platformProjectRoot,
+        'app',
+        'src',
+        'main',
+        'assets'
+      )
+
+      await fs.mkdir(javaDest, { recursive: true })
+      await fs.mkdir(assetsDest, { recursive: true })
+
+      // Copy the worklet bundle into android assets
+      const workletSrc = path.resolve(config.modRequest.projectRoot, worklet)
+
+      await fs.copyFile(workletSrc, path.join(assetsDest, workletBasename))
 
       const source =
         `package ${packageName}\n` +
         '\n' +
+        'import android.app.Notification\n' +
         'import android.app.NotificationChannel\n' +
         'import android.app.NotificationManager\n' +
-        'import android.os.Build\n' +
         'import android.util.Log\n' +
-        'import androidx.core.app.NotificationCompat\n' +
         'import org.json.JSONObject\n' +
-        'import to.holepunch.bare.kit.MessagingService\n' +
+        'import to.holepunch.bare.kit.Worklet\n' +
+        'import to.holepunch.bare.kit.MessagingService as BaseMessagingService\n' +
         '\n' +
-        `class ${serviceName} : MessagingService() {\n` +
+        `class ${serviceName} : BaseMessagingService(Worklet.Options()) {\n` +
+        '  private var notificationManager: NotificationManager? = null\n' +
+        '\n' +
         '  override fun onCreate() {\n' +
         '    super.onCreate()\n' +
         '\n' +
-        '    val manager = getSystemService(NotificationManager::class.java)\n' +
+        '    notificationManager = getSystemService(NotificationManager::class.java)\n' +
         '\n' +
-        '    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {\n' +
-        '      val channel = NotificationChannel(\n' +
+        '    notificationManager!!.createNotificationChannel(\n' +
+        '      NotificationChannel(\n' +
         `        "${channelId}",\n` +
         `        "${channelName}",\n` +
         '        NotificationManager.IMPORTANCE_DEFAULT\n' +
         '      )\n' +
+        '    )\n' +
         '\n' +
-        '      manager.createNotificationChannel(channel)\n' +
+        '    try {\n' +
+        `      this.start("/${workletBasename}", assets.open("${workletBasename}"), null)\n` +
+        '    } catch (e: Exception) {\n' +
+        '      throw RuntimeException(e)\n' +
         '    }\n' +
-        '\n' +
-        `    start("${worklet}")\n` +
         '  }\n' +
         '\n' +
-        '  override fun onWorkletReply(reply: ByteArray) {\n' +
-        '    val response = JSONObject(String(reply))\n' +
-        '\n' +
-        '    val notification = NotificationCompat.Builder(this, ' +
-        `"${channelId}")\n` +
-        '      .setSmallIcon(android.R.drawable.ic_dialog_info)\n' +
-        '      .setContentTitle(response.getString("title"))\n' +
-        '      .setContentText(response.getString("body"))\n' +
-        '      .setPriority(NotificationCompat.PRIORITY_DEFAULT)\n' +
-        '      .build()\n' +
-        '\n' +
-        '    val manager = getSystemService(NotificationManager::class.java)\n' +
-        '\n' +
-        '    manager.notify(System.currentTimeMillis().toInt(), notification)\n' +
+        '  override fun onWorkletReply(reply: JSONObject) {\n' +
+        '    try {\n' +
+        '      notificationManager!!.notify(\n' +
+        '        System.currentTimeMillis().toInt(),\n' +
+        `        Notification.Builder(this, "${channelId}")\n` +
+        '          .setSmallIcon(android.R.drawable.ic_dialog_info)\n' +
+        '          .setContentTitle(reply.optString("title", "Notification"))\n' +
+        '          .setContentText(reply.optString("body", ""))\n' +
+        '          .setAutoCancel(true)\n' +
+        '          .build()\n' +
+        '      )\n' +
+        '    } catch (e: Exception) {\n' +
+        '      throw RuntimeException(e)\n' +
+        '    }\n' +
         '  }\n' +
         '\n' +
         '  override fun onNewToken(token: String) {\n' +
-        `    Log.d("${serviceName}", "New token: ${'$'}token")\n` +
+        `    Log.v("${serviceName}", "Token: ${'$'}token")\n` +
         '  }\n' +
         '}\n'
 
-      await addFileIfNotExists(path.join(dest, `${serviceName}.kt`), source)
+      await addFileIfNotExists(path.join(javaDest, `${serviceName}.kt`), source)
 
       return config
     }
