@@ -1,9 +1,7 @@
 const { withAndroidManifest } = require('@expo/config-plugins')
-const defaults = require('../../defaults').android.notifications
+const serviceName = 'MessagingService'
 
 module.exports = function withMessagingManifest(config, opts = {}) {
-  const { serviceName = defaults.serviceName } = opts
-
   return withAndroidManifest(config, (config) => {
     const { modResults } = config
 
