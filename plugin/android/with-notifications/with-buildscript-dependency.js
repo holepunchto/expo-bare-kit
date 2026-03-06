@@ -1,7 +1,4 @@
-const {
-  WarningAggregator,
-  withProjectBuildGradle
-} = require('@expo/config-plugins')
+const { WarningAggregator, withProjectBuildGradle } = require('@expo/config-plugins')
 
 const googleServicesClassPath = 'com.google.gms:google-services'
 const googleServicesVersion = '4.4.2'

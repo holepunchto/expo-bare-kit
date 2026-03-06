@@ -6,10 +6,7 @@ module.exports = function withServicesManifest(config, opts = {}) {
   return withDangerousMod(config, [
     'android',
     async (config) => {
-      const src = path.resolve(
-        config.modRequest.projectRoot,
-        opts.googleServices
-      )
+      const src = path.resolve(config.modRequest.projectRoot, opts.googleServices)
 
       const dest = path.resolve(
         config.modRequest.platformProjectRoot,

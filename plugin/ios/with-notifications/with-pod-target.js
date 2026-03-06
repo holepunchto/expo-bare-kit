@@ -8,11 +8,7 @@ module.exports = function withPodTarget(config, opts = {}) {
   return withPodfile(config, (config) => {
     const { modResults } = config
 
-    modResults.contents = addPodTarget(
-      modResults.contents,
-      modResults.path,
-      targetName
-    )
+    modResults.contents = addPodTarget(modResults.contents, modResults.path, targetName)
 
     return config
   })

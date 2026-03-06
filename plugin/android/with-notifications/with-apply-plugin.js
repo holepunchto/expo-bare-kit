@@ -1,7 +1,4 @@
-const {
-  WarningAggregator,
-  withAppBuildGradle
-} = require('@expo/config-plugins')
+const { WarningAggregator, withAppBuildGradle } = require('@expo/config-plugins')
 
 const googleServicesPlugin = 'com.google.gms.google-services'
 

@@ -12,10 +12,7 @@ module.exports = function withBareKit(config, opts = {}) {
     plugins.push([withNotificationsIos, ios.notifications])
   }
 
-  if (
-    typeof android.notifications === 'object' &&
-    android.notifications !== null
-  ) {
+  if (typeof android.notifications === 'object' && android.notifications !== null) {
     plugins.push([withNotificationsAndroid, android.notifications])
   }
 

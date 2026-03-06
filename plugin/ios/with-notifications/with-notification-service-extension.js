@@ -1,10 +1,6 @@
 const fs = require('fs').promises
 const path = require('path')
-const {
-  withPlugins,
-  withXcodeProject,
-  withDangerousMod
-} = require('@expo/config-plugins')
+const { withPlugins, withXcodeProject, withDangerousMod } = require('@expo/config-plugins')
 const defaults = require('../../defaults').ios.notifications
 
 module.exports = function withNotificationServiceExtension(config, opts = {}) {
@@ -63,31 +59,14 @@ function withProjectConfiguration(config, opts = {}) {
       `${config.ios.bundleIdentifier}.${targetName}`
     )
 
-    project.addBuildPhase(
-      ['NotificationService.m'],
-      'PBXSourcesBuildPhase',
-      'Sources',
-      target.uuid
-    )
-    project.addBuildPhase(
-      [workletPath],
-      'PBXResourcesBuildPhase',
-      'Resources',
-      target.uuid
-    )
-    project.addBuildPhase(
-      [],
-      'PBXFrameworksBuildPhase',
-      'Frameworks',
-      target.uuid
-    )
+    project.addBuildPhase(['NotificationService.m'], 'PBXSourcesBuildPhase', 'Sources', target.uuid)
+    project.addBuildPhase([workletPath], 'PBXResourcesBuildPhase', 'Resources', target.uuid)
+    project.addBuildPhase([], 'PBXFrameworksBuildPhase', 'Frameworks', target.uuid)
 
     const configurations = project.pbxXCBuildConfigurationSection()
 
     for (const key in configurations) {
-      if (
-        configurations[key].buildSettings?.PRODUCT_NAME === `"${targetName}"`
-      ) {
+      if (configurations[key].buildSettings?.PRODUCT_NAME === `"${targetName}"`) {
         const settings = configurations[key].buildSettings
 
         settings.CODE_SIGN_ENTITLEMENTS = `${targetName}/${targetName}.entitlements`

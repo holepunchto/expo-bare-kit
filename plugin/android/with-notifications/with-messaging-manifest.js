@@ -9,9 +9,7 @@ module.exports = function withMessagingManifest(config, opts = {}) {
 
     application.service = application.service || []
 
-    const exists = application.service.some(
-      (s) => s.$['android:name'] === `.${serviceName}`
-    )
+    const exists = application.service.some((s) => s.$['android:name'] === `.${serviceName}`)
 
     if (exists) return config
 

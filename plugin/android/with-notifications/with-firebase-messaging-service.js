@@ -7,11 +7,7 @@ module.exports = function withFirebaseMessagingService(config, opts = {}) {
   return withDangerousMod(config, [
     'android',
     async (config) => {
-      const {
-        worklet,
-        channelId = defaults.channelId,
-        channelName = defaults.channelName
-      } = opts
+      const { worklet, channelId = defaults.channelId, channelName = defaults.channelName } = opts
 
       const serviceName = 'MessagingService'
 

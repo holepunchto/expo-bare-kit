@@ -1,7 +1,4 @@
-const {
-  WarningAggregator,
-  withAppBuildGradle
-} = require('@expo/config-plugins')
+const { WarningAggregator, withAppBuildGradle } = require('@expo/config-plugins')
 
 const firebaseBomVersion = '33.10.0'
 
@@ -28,11 +25,7 @@ function addFirebaseDependencies(buildGradle) {
   if (buildGradle.includes('firebase-messaging')) return buildGradle
 
   const bomLine = `    implementation platform('com.google.firebase:firebase-bom:${firebaseBomVersion}')`
-  const messagingLine =
-    "    implementation 'com.google.firebase:firebase-messaging'"
+  const messagingLine = "    implementation 'com.google.firebase:firebase-messaging'"
 
-  return buildGradle.replace(
-    /dependencies\s*{/,
-    `dependencies {\n${bomLine}\n${messagingLine}`
-  )
+  return buildGradle.replace(/dependencies\s*{/, `dependencies {\n${bomLine}\n${messagingLine}`)
 }
