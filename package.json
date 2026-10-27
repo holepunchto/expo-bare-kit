@@ -24,6 +24,9 @@
     "url": "https://github.com/holepunchto/expo-bare-kit/issues"
   },
   "homepage": "https://github.com/holepunchto/expo-bare-kit#readme",
+  "dependencies": {
+    "bare-stow": "^0.2.0"
+  },
   "peerDependencies": {
     "expo": ">=47.0.0",
     "react": "*",
