@@ -2,7 +2,7 @@ const { WarningAggregator, withAppBuildGradle } = require('@expo/config-plugins'
 
 const firebaseBomVersion = '33.10.0'
 
-module.exports = function withFirebaseDependency(config, opts = {}) {
+module.exports = function withFirebaseDependency(config) {
   return withAppBuildGradle(config, (config) => {
     const { modResults } = config
 

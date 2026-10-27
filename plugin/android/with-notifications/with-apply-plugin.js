@@ -2,7 +2,7 @@ const { WarningAggregator, withAppBuildGradle } = require('@expo/config-plugins'
 
 const googleServicesPlugin = 'com.google.gms.google-services'
 
-module.exports = function withApplyPlugin(config, opts = {}) {
+module.exports = function withApplyPlugin(config) {
   return withAppBuildGradle(config, (config) => {
     const { modResults } = config
 

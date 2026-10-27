@@ -3,7 +3,7 @@ const { WarningAggregator, withProjectBuildGradle } = require('@expo/config-plug
 const googleServicesClassPath = 'com.google.gms:google-services'
 const googleServicesVersion = '4.4.2'
 
-module.exports = function withBuildscriptDependency(config, opts = {}) {
+module.exports = function withBuildscriptDependency(config) {
   return withProjectBuildGradle(config, (config) => {
     const { modResults } = config
 
