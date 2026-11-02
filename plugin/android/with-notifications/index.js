@@ -6,6 +6,8 @@ const withServicesManifest = require('./with-services-manifest')
 const withFirebaseDependency = require('./with-firebase-dependency')
 const withFirebaseMessagingService = require('./with-firebase-messaging-service')
 const withMessagingManifest = require('./with-messaging-manifest')
+const withModule = require('../with-module')
+const defaults = require('../../defaults').android.notifications
 
 module.exports = function withNotifications(config, opts = {}) {
   return withPlugins(config, [
@@ -14,6 +16,7 @@ module.exports = function withNotifications(config, opts = {}) {
     [withServicesManifest, opts],
     [withFirebaseDependency, opts],
     [withFirebaseMessagingService, opts],
+    [withModule, defaults.worker],
     [withMessagingManifest, opts]
   ])
 }

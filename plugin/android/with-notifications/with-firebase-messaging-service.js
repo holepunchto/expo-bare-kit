@@ -1,19 +1,26 @@
 const fs = require('fs').promises
 const path = require('path')
 const { withDangerousMod } = require('@expo/config-plugins')
+const { pack } = require('../../stow')
 const defaults = require('../../defaults').android.notifications
 
 module.exports = function withFirebaseMessagingService(config, opts = {}) {
   return withDangerousMod(config, [
     'android',
     async (config) => {
-      const { worklet, channelId = defaults.channelId, channelName = defaults.channelName } = opts
+      const { worker, channelId = defaults.channelId, channelName = defaults.channelName } = opts
 
       const serviceName = 'MessagingService'
 
       const packageName = config.android.package
       const packagePath = packageName.replace(/\./g, '/')
-      const workletBasename = path.basename(worklet)
+
+      await pack(config, {
+        worker,
+        language: 'kotlin',
+        languageOptions: { package: `${packageName}.push` },
+        out: path.join(config.modRequest.platformProjectRoot, defaults.worker)
+      })
 
       const javaDest = path.join(
         config.modRequest.platformProjectRoot,
@@ -24,21 +31,7 @@ module.exports = function withFirebaseMessagingService(config, opts = {}) {
         packagePath
       )
 
-      const assetsDest = path.join(
-        config.modRequest.platformProjectRoot,
-        'app',
-        'src',
-        'main',
-        'assets'
-      )
-
       await fs.mkdir(javaDest, { recursive: true })
-      await fs.mkdir(assetsDest, { recursive: true })
-
-      // Copy the worklet bundle into android assets
-      const workletSrc = path.resolve(config.modRequest.projectRoot, worklet)
-
-      await fs.copyFile(workletSrc, path.join(assetsDest, workletBasename))
 
       const source =
         `package ${packageName}\n` +
@@ -47,51 +40,62 @@ module.exports = function withFirebaseMessagingService(config, opts = {}) {
         'import android.app.NotificationChannel\n' +
         'import android.app.NotificationManager\n' +
         'import android.util.Log\n' +
+        'import com.google.firebase.messaging.FirebaseMessagingService\n' +
+        'import com.google.firebase.messaging.RemoteMessage\n' +
+        'import kotlin.time.Duration.Companion.seconds\n' +
+        'import kotlinx.coroutines.flow.firstOrNull\n' +
+        'import kotlinx.coroutines.runBlocking\n' +
+        'import kotlinx.coroutines.withTimeoutOrNull\n' +
         'import org.json.JSONObject\n' +
-        'import to.holepunch.bare.kit.Worklet\n' +
-        'import to.holepunch.bare.kit.MessagingService as BaseMessagingService\n' +
+        `import ${packageName}.push.start\n` +
         '\n' +
-        `class ${serviceName} : BaseMessagingService(Worklet.Options()) {\n` +
-        '  private var notificationManager: NotificationManager? = null\n' +
+        `class ${serviceName} : FirebaseMessagingService() {\n` +
+        '  private lateinit var notificationManager: NotificationManager\n' +
         '\n' +
         '  override fun onCreate() {\n' +
         '    super.onCreate()\n' +
         '\n' +
         '    notificationManager = getSystemService(NotificationManager::class.java)\n' +
         '\n' +
-        '    notificationManager!!.createNotificationChannel(\n' +
+        '    notificationManager.createNotificationChannel(\n' +
         '      NotificationChannel(\n' +
         `        "${channelId}",\n` +
         `        "${channelName}",\n` +
-        '        NotificationManager.IMPORTANCE_DEFAULT\n' +
+        '        NotificationManager.IMPORTANCE_DEFAULT,\n' +
         '      )\n' +
         '    )\n' +
-        '\n' +
-        '    try {\n' +
-        `      this.start("/${workletBasename}", assets.open("${workletBasename}"), null)\n` +
-        '    } catch (e: Exception) {\n' +
-        '      throw RuntimeException(e)\n' +
-        '    }\n' +
         '  }\n' +
         '\n' +
-        '  override fun onWorkletReply(reply: JSONObject) {\n' +
-        '    try {\n' +
-        '      notificationManager!!.notify(\n' +
-        '        System.currentTimeMillis().toInt(),\n' +
-        `        Notification.Builder(this, "${channelId}")\n` +
-        '          .setSmallIcon(android.R.drawable.ic_dialog_info)\n' +
-        '          .setContentTitle(reply.optString("title", "Notification"))\n' +
-        '          .setContentText(reply.optString("body", ""))\n' +
-        '          .setAutoCancel(true)\n' +
-        '          .build()\n' +
-        '      )\n' +
-        '    } catch (e: Exception) {\n' +
-        '      throw RuntimeException(e)\n' +
-        '    }\n' +
+        '  override fun onMessageReceived(message: RemoteMessage) {\n' +
+        '    val reply =\n' +
+        '      runBlocking { withTimeoutOrNull(15.seconds) { reply(JSONObject(message.data as Map<*, *>)) } }\n' +
+        '        ?: return\n' +
+        '\n' +
+        '    notificationManager.notify(\n' +
+        '      System.currentTimeMillis().toInt(),\n' +
+        `      Notification.Builder(this, "${channelId}")\n` +
+        '        .setSmallIcon(android.R.drawable.ic_dialog_info)\n' +
+        '        .setContentTitle(reply.optString("title", "Notification"))\n' +
+        '        .setContentText(reply.optString("body", ""))\n' +
+        '        .setAutoCancel(true)\n' +
+        '        .build(),\n' +
+        '    )\n' +
         '  }\n' +
         '\n' +
         '  override fun onNewToken(token: String) {\n' +
         `    Log.v("${serviceName}", "Token: ${'$'}token")\n` +
+        '  }\n' +
+        '\n' +
+        '  private suspend fun reply(payload: JSONObject): JSONObject? {\n' +
+        '    val started = start(this)\n' +
+        '\n' +
+        '    try {\n' +
+        '      started.ipc.write(payload.toString().encodeToByteArray())\n' +
+        '\n' +
+        '      return started.ipc.data.firstOrNull()?.let { JSONObject(it.decodeToString()) }\n' +
+        '    } finally {\n' +
+        '      started.ipc.terminate()\n' +
+        '    }\n' +
         '  }\n' +
         '}\n'
 
