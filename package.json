@@ -2,11 +2,23 @@
   "name": "expo-bare-kit",
   "version": "0.1.2",
   "description": "Bare Kit for Expo",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "exports": {
+    "./package": "./package.json",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./app.plugin.js": "./app.plugin.js",
+    "./metro": "./metro.js",
+    "./workers/*": {
+      "types": "./workers.d.ts"
+    }
+  },
   "files": [
     "index.js",
     "index.d.ts",
+    "metro.js",
+    "workers.d.ts",
     "app.plugin.js",
     "plugin"
   ],
@@ -25,7 +37,10 @@
   },
   "homepage": "https://github.com/holepunchto/expo-bare-kit#readme",
   "dependencies": {
-    "bare-stow": "^0.2.0"
+    "bare-bundle": "^1.11.0",
+    "bare-stow": "^0.2.0",
+    "bare-stow-host": "^0.1.0",
+    "bare-stow-target-react-native": "^0.1.2"
   },
   "peerDependencies": {
     "expo": ">=47.0.0",

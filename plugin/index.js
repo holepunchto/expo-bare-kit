@@ -4,17 +4,14 @@ const withBareKitIos = require('./ios/with-bare-kit')
 const withBareKitAndroid = require('./android/with-bare-kit')
 const withNotificationsIos = require('./ios/with-notifications')
 const withNotificationsAndroid = require('./android/with-notifications')
+const workers = require('./workers')
 
 module.exports = function withBareKit(config, opts = {}) {
-  const { workers, ios = {}, android = {} } = opts
-
-  if (!Array.isArray(workers) || workers.length === 0) {
-    throw new Error("Option 'workers' must list the entry points of the workers")
-  }
+  const { ios = {}, android = {} } = opts
 
   // The addons of the workers handling notifications are linked with the rest.
   const linked = [
-    ...new Set([...workers, ios.notifications?.worker, android.notifications?.worker])
+    ...new Set([...workers(opts), ios.notifications?.worker, android.notifications?.worker])
   ].filter(Boolean)
 
   const plugins = [
