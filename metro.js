@@ -71,7 +71,9 @@ class Worker {
     this.out = path.join(out, ...this.name.split('/'))
     this.harness = path.join(this.out, 'index.js')
 
-    this._watchers = []
+    this._watcher = null
+    this._base = null
+    this._sources = new Set()
     this._timer = null
     this._packing = null
     this._stale = false
@@ -84,39 +86,25 @@ class Worker {
       if (artifact.base) bundle = artifact
     }
 
-    this._watch(sources(bundle))
+    this._sources = sources(bundle)
+    this._watch(fileURLToPath(bundle.base))
   }
 
-  _watch(files) {
-    for (const watcher of this._watchers) watcher.close()
+  // On macOS, the watchers of a process share one event stream with those of
+  // Metro, which drops events while it's reconfigured. Watching the base of the
+  // bundle keeps the watcher in place as long as the base doesn't move.
+  _watch(base) {
+    if (base === this._base) return
 
-    this._watchers = []
+    if (this._watcher) this._watcher.close()
 
-    const dirs = new Map()
+    this._base = base
 
-    for (const file of files) {
-      const dir = path.dirname(file)
+    this._watcher = fs.watch(base, { recursive: true, persistent: false }, (event, name) => {
+      if (name === null || this._sources.has(path.join(base, name))) this._schedule()
+    })
 
-      if (!dirs.has(dir)) dirs.set(dir, new Set())
-
-      dirs.get(dir).add(path.basename(file))
-    }
-
-    for (const [dir, names] of dirs) {
-      let watcher
-
-      try {
-        watcher = fs.watch(dir, { persistent: false }, (event, name) => {
-          if (name === null || names.has(name)) this._schedule()
-        })
-      } catch {
-        continue
-      }
-
-      watcher.on('error', () => {})
-
-      this._watchers.push(watcher)
-    }
+    this._watcher.on('error', () => {})
   }
 
   // Saving a file may fire several events, which are batched into one pack.
@@ -164,7 +152,7 @@ function sources({ url, base }) {
 
   const bundle = Bundle.from(JSON.parse(source.replace(/^export default /, '')))
 
-  return [...bundle.keys()].map((key) => fileURLToPath(new URL('.' + key, base)))
+  return new Set([...bundle.keys()].map((key) => fileURLToPath(new URL('.' + key, base))))
 }
 
 function isBare(specifier) {
