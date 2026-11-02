@@ -40,7 +40,7 @@
     "bare-bundle": "^1.11.0",
     "bare-stow": "^0.2.0",
     "bare-stow-host": "^0.1.0",
-    "bare-stow-target-react-native": "^0.1.2"
+    "bare-stow-target-react-native": "^0.2.0"
   },
   "peerDependencies": {
     "expo": ">=47.0.0",
