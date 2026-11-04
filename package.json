@@ -12,7 +12,10 @@
       "types": "./app.plugin.d.ts",
       "default": "./app.plugin.js"
     },
-    "./metro": "./metro.js",
+    "./metro": {
+      "types": "./metro.d.ts",
+      "default": "./metro.js"
+    },
     "./workers/*": {
       "types": "./workers.d.ts"
     }
@@ -21,6 +24,7 @@
     "index.js",
     "index.d.ts",
     "metro.js",
+    "metro.d.ts",
     "workers.d.ts",
     "app.plugin.js",
     "app.plugin.d.ts",
