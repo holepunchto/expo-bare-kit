@@ -9,10 +9,18 @@ const workers = require('./workers')
 module.exports = function withBareKit(config, opts = {}) {
   const { ios = {}, android = {} } = opts
 
+  const linked = workers(opts)
+
   // The addons of the workers handling notifications are linked with the rest.
-  const linked = [
-    ...new Set([...workers(opts), ios.notifications?.worker, android.notifications?.worker])
-  ].filter(Boolean)
+  for (const worker of [ios.notifications?.worker, android.notifications?.worker]) {
+    if (typeof worker === 'string' && !workers.find(linked, worker)) {
+      linked.push({ entry: worker, options: {} })
+    }
+  }
+
+  // Metro packs the workers in a process of its own, which evaluates the
+  // plugins of the project to read the options back.
+  config._internal = { ...config._internal, 'expo-bare-kit': opts }
 
   const plugins = [
     [withBareKitIos, { workers: linked }],
@@ -20,12 +28,20 @@ module.exports = function withBareKit(config, opts = {}) {
   ]
 
   if (typeof ios.notifications === 'object' && ios.notifications !== null) {
-    plugins.push([withNotificationsIos, ios.notifications])
+    plugins.push([withNotificationsIos, notifications(ios.notifications, linked)])
   }
 
   if (typeof android.notifications === 'object' && android.notifications !== null) {
-    plugins.push([withNotificationsAndroid, android.notifications])
+    plugins.push([withNotificationsAndroid, notifications(android.notifications, linked)])
   }
 
   return withPlugins(config, plugins)
+}
+
+function notifications(opts, linked) {
+  if (typeof opts.worker !== 'string') {
+    throw new Error("Option 'worker' must name the entry point of the notification worker")
+  }
+
+  return { ...opts, worker: workers.find(linked, opts.worker) }
 }

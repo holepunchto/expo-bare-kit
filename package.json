@@ -8,8 +8,14 @@
       "types": "./index.d.ts",
       "default": "./index.js"
     },
-    "./app.plugin.js": "./app.plugin.js",
-    "./metro": "./metro.js",
+    "./app.plugin.js": {
+      "types": "./app.plugin.d.ts",
+      "default": "./app.plugin.js"
+    },
+    "./metro": {
+      "types": "./metro.d.ts",
+      "default": "./metro.js"
+    },
     "./workers/*": {
       "types": "./workers.d.ts"
     }
@@ -18,13 +24,16 @@
     "index.js",
     "index.d.ts",
     "metro.js",
+    "metro.d.ts",
     "workers.d.ts",
     "app.plugin.js",
+    "app.plugin.d.ts",
     "plugin"
   ],
   "scripts": {
     "format": "prettier --write . && lunte --fix",
-    "lint": "prettier --check . && lunte"
+    "lint": "prettier --check . && lunte",
+    "test": "brittle-node --coverage test.js"
   },
   "repository": {
     "type": "git",
@@ -38,19 +47,23 @@
   "homepage": "https://github.com/holepunchto/expo-bare-kit#readme",
   "dependencies": {
     "bare-bundle": "^1.11.0",
-    "bare-stow": "^0.2.0",
-    "bare-stow-host": "^0.1.0",
-    "bare-stow-target-react-native": "^0.2.0"
+    "bare-stow": "^0.3.0",
+    "bare-stow-host": "^0.2.0",
+    "bare-stow-target-react-native": "^0.3.0"
   },
   "peerDependencies": {
     "expo": ">=47.0.0",
     "react": "*",
     "react-native": "*",
-    "react-native-bare-kit": ">=0.5.0"
+    "react-native-bare-kit": ">=0.17.0"
   },
   "devDependencies": {
+    "bare-os": "^3.9.3",
+    "bare-stow-runtime": "^0.1.0",
+    "brittle": "^4.5.0",
     "lunte": "^1.8.6",
     "prettier": "^3.5.2",
-    "prettier-config-holepunch": "^2.0.0"
+    "prettier-config-holepunch": "^2.0.0",
+    "test-tmp": "^1.4.0"
   }
 }

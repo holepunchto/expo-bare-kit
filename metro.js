@@ -9,6 +9,10 @@ const workers = require('./plugin/workers')
 
 const prefix = 'expo-bare-kit/workers/'
 
+// Elsewhere, Node watches a tree by walking it and watching every directory,
+// which fails for a base as wide as the file system.
+const recursive = process.platform === 'darwin' || process.platform === 'win32'
+
 // Packs the workers listed in the options of the plugin before Metro starts,
 // and again whenever a module of one of them changes, so that the application
 // can import them as `expo-bare-kit/workers/<name>`.
@@ -19,8 +23,8 @@ module.exports = async function withBareKit(config) {
 
   const packed = new Map()
 
-  for (const entry of workers(options(projectRoot))) {
-    const worker = new Worker(projectRoot, entry, out)
+  for (const { entry, options } of workers(pluginOptions(projectRoot))) {
+    const worker = new Worker(projectRoot, entry, options, out)
 
     packed.set(worker.name, worker)
   }
@@ -55,8 +59,9 @@ module.exports = async function withBareKit(config) {
 }
 
 class Worker {
-  constructor(projectRoot, entry, out) {
+  constructor(projectRoot, entry, options, out) {
     this.entry = path.resolve(projectRoot, entry)
+    this.options = options
 
     const relative = path.relative(projectRoot, this.entry)
 
@@ -71,8 +76,7 @@ class Worker {
     this.out = path.join(out, ...this.name.split('/'))
     this.harness = path.join(this.out, 'index.js')
 
-    this._watcher = null
-    this._base = null
+    this._watchers = new Map()
     this._sources = new Set()
     this._timer = null
     this._packing = null
@@ -82,7 +86,12 @@ class Worker {
   async pack() {
     let bundle = null
 
-    for await (const artifact of stow(pathToFileURL(this.entry), target, pathToFileURL(this.out))) {
+    for await (const artifact of stow(
+      pathToFileURL(this.entry),
+      target,
+      pathToFileURL(this.out),
+      this.options
+    )) {
       if (artifact.base) bundle = artifact
     }
 
@@ -94,17 +103,29 @@ class Worker {
   // Metro, which drops events while it's reconfigured. Watching the base of the
   // bundle keeps the watcher in place as long as the base doesn't move.
   _watch(base) {
-    if (base === this._base) return
+    const directories = recursive
+      ? new Set([base])
+      : new Set([...this._sources].map((source) => path.dirname(source)))
 
-    if (this._watcher) this._watcher.close()
+    for (const [directory, watcher] of this._watchers) {
+      if (directories.has(directory)) continue
 
-    this._base = base
+      watcher.close()
 
-    this._watcher = fs.watch(base, { recursive: true, persistent: false }, (event, name) => {
-      if (name === null || this._sources.has(path.join(base, name))) this._schedule()
-    })
+      this._watchers.delete(directory)
+    }
 
-    this._watcher.on('error', () => {})
+    for (const directory of directories) {
+      if (this._watchers.has(directory)) continue
+
+      const watcher = fs.watch(directory, { recursive, persistent: false }, (event, name) => {
+        if (name === null || this._sources.has(path.join(directory, name))) this._schedule()
+      })
+
+      watcher.on('error', () => {})
+
+      this._watchers.set(directory, watcher)
+    }
   }
 
   // Saving a file may fire several events, which are batched into one pack.
@@ -135,16 +156,16 @@ class Worker {
   }
 }
 
-function options(projectRoot) {
+// The plugin records its options in the config, which also covers plugins that
+// apply it with options of their own.
+function pluginOptions(projectRoot) {
   const { exp } = getConfig(projectRoot, { skipSDKVersionRequirement: true })
 
-  for (const plugin of exp.plugins ?? []) {
-    const [name, opts = {}] = Array.isArray(plugin) ? plugin : [plugin]
+  const opts = exp._internal?.['expo-bare-kit']
 
-    if (name === 'expo-bare-kit') return opts
-  }
+  if (opts === undefined) throw new Error("Plugin 'expo-bare-kit' is not configured")
 
-  throw new Error("Plugin 'expo-bare-kit' is not configured")
+  return opts
 }
 
 function sources({ url, base }) {
