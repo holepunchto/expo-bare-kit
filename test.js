@@ -3,6 +3,7 @@ const path = require('path')
 const { execFile } = require('child_process')
 const { promisify } = require('util')
 const test = require('brittle')
+const tmp = require('test-tmp')
 const Bundle = require('bare-bundle')
 const { getConfig } = require('expo/config')
 const { compileModsAsync } = require('@expo/config-plugins')
@@ -143,7 +144,11 @@ function app(plugins) {
 // Builds an application in a temporary directory, with a skeleton of the
 // Android project for the mods of the plugin to change.
 async function project(t, files) {
-  const root = await fs.promises.realpath(await t.tmp())
+  // The projects link the modules of this package, which on Windows must be on
+  // the same drive for the modules of a worker to share a base. Under
+  // `node_modules`, they're also left out of coverage, which would otherwise
+  // read them after they're removed.
+  const root = await tmp(t, { dir: path.join(__dirname, 'node_modules', '.tmp') })
 
   files = {
     'package.json': JSON.stringify({ name: 'app', version: '1.0.0' }),
