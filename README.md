@@ -81,6 +81,60 @@ The plugin links the addons and assets of the workers once with `bare-stow link`
 
 On Android, the plugin also adds JitPack (<https://jitpack.io>) to the repositories of the project, and raises the minimum SDK version to 29 and the Kotlin version to 2.4.20 if needed.
 
+### Worker options
+
+A worker may instead be a pair of its entry point and the `bare-stow` options it's stowed with:
+
+```json
+[
+  "expo-bare-kit",
+  {
+    "workers": [
+      "core.js",
+      [
+        "push.js",
+        {
+          "hosts": ["ios-arm64", "android-arm64"],
+          "imports": { "fs": "bare-fs" },
+          "defer": ["optional-module"]
+        }
+      ]
+    ]
+  }
+]
+```
+
+| Option    | Type       | Description                                                                              |
+| --------- | ---------- | ---------------------------------------------------------------------------------------- |
+| `hosts`   | `string[]` | The hosts to stow the worker for, across both platforms. Defaults to all of them         |
+| `imports` | `object`   | The import map applied when resolving the modules of the worker                          |
+| `defer`   | `string[]` | The specifiers left for the worker to resolve when it runs, rather than when it's packed |
+
+A worker handling notifications uses the options it's listed with in `workers`.
+
+The addons of all the workers are linked together in one pass, so the workers must agree on `imports` and `defer`, and prebuild fails if they don't. The hosts are combined instead: the plugin links the addons for every host that any of the workers is stowed for, and for all of them if one of the workers isn't narrowed. A worker narrowed to the hosts of one platform is left out on the other, so its addons aren't linked there. Prebuild fails if this leaves a platform with no workers, or if the worker handling notifications on a platform isn't stowed for it.
+
+### Composing the plugin
+
+Another config plugin can apply this one with options of its own, in place of listing it in the `plugins` of the application:
+
+```js
+const { withPlugins } = require('expo/config-plugins')
+
+module.exports = function withMyApp(config) {
+  return withPlugins(config, [
+    [
+      'expo-bare-kit',
+      {
+        workers: ['core.js', ['push.js', { hosts: ['ios-arm64', 'android-arm64'] }]]
+      }
+    ]
+  ])
+}
+```
+
+The plugin records its options in the config, where `withBareKit()` from `expo-bare-kit/metro` reads them back, so Metro packs the workers either way.
+
 ### iOS notifications
 
 Enable by setting `ios.notifications` to an object. Omit or set to `null` to skip.

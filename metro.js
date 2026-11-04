@@ -19,8 +19,8 @@ module.exports = async function withBareKit(config) {
 
   const packed = new Map()
 
-  for (const entry of workers(options(projectRoot))) {
-    const worker = new Worker(projectRoot, entry, out)
+  for (const { entry, options } of workers(pluginOptions(projectRoot))) {
+    const worker = new Worker(projectRoot, entry, options, out)
 
     packed.set(worker.name, worker)
   }
@@ -55,8 +55,9 @@ module.exports = async function withBareKit(config) {
 }
 
 class Worker {
-  constructor(projectRoot, entry, out) {
+  constructor(projectRoot, entry, options, out) {
     this.entry = path.resolve(projectRoot, entry)
+    this.options = options
 
     const relative = path.relative(projectRoot, this.entry)
 
@@ -82,7 +83,12 @@ class Worker {
   async pack() {
     let bundle = null
 
-    for await (const artifact of stow(pathToFileURL(this.entry), target, pathToFileURL(this.out))) {
+    for await (const artifact of stow(
+      pathToFileURL(this.entry),
+      target,
+      pathToFileURL(this.out),
+      this.options
+    )) {
       if (artifact.base) bundle = artifact
     }
 
@@ -135,16 +141,16 @@ class Worker {
   }
 }
 
-function options(projectRoot) {
+// The plugin records its options in the config, which also covers plugins that
+// apply it with options of their own.
+function pluginOptions(projectRoot) {
   const { exp } = getConfig(projectRoot, { skipSDKVersionRequirement: true })
 
-  for (const plugin of exp.plugins ?? []) {
-    const [name, opts = {}] = Array.isArray(plugin) ? plugin : [plugin]
+  const opts = exp._internal?.['expo-bare-kit']
 
-    if (name === 'expo-bare-kit') return opts
-  }
+  if (opts === undefined) throw new Error("Plugin 'expo-bare-kit' is not configured")
 
-  throw new Error("Plugin 'expo-bare-kit' is not configured")
+  return opts
 }
 
 function sources({ url, base }) {
