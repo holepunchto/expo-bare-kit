@@ -46,8 +46,9 @@
   },
   "homepage": "https://github.com/holepunchto/expo-bare-kit#readme",
   "dependencies": {
+    "@expo/plist": "^0.10.1",
     "bare-bundle": "^1.11.0",
-    "bare-stow": "^0.3.0",
+    "bare-stow": "^0.3.9",
     "bare-stow-host": "^0.2.0",
     "bare-stow-target-react-native": "^0.3.0"
   },

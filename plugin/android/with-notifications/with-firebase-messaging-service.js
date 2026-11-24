@@ -8,7 +8,7 @@ module.exports = function withFirebaseMessagingService(config, opts = {}) {
   return withDangerousMod(config, [
     'android',
     async (config) => {
-      const { worker, channelId = defaults.channelId, channelName = defaults.channelName } = opts
+      const { channelId = defaults.channelId, channelName = defaults.channelName } = opts
 
       const serviceName = 'MessagingService'
 
@@ -16,7 +16,6 @@ module.exports = function withFirebaseMessagingService(config, opts = {}) {
       const packagePath = packageName.replace(/\./g, '/')
 
       await pack(config, {
-        worker,
         language: 'kotlin',
         languageOptions: { package: `${packageName}.push` },
         out: path.join(config.modRequest.platformProjectRoot, defaults.worker)

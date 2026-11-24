@@ -67,13 +67,15 @@ ipc.write(b4a.from('Hello from React Native!'))
 
 ### Workers
 
-`workers` lists the entry points of the workers of the application, relative to the project. Each worker exports a `start()` function that receives the IPC stream:
+`workers` lists the entry points of the workers of the application. An entry point is a path relative to the project or, if no such file exists, a module specifier resolved from the project, such as `my-lib/worker.js`. Each worker exports a `start()` function that receives the IPC stream:
 
 ```js
 module.exports = function start(ipc) {
   ipc.on('data', (data) => ipc.write(data))
 }
 ```
+
+The application imports a worker by its entry point without the extension, such as `expo-bare-kit/workers/core` for `core.js` and `expo-bare-kit/workers/my-lib/worker` for `my-lib/worker.js`. Two workers can't share a name.
 
 `withBareKit()` packs the workers with `bare-stow` (<https://github.com/holepunchto/bare-stow>) into `.expo/bare-kit` whenever Metro starts, which also covers release builds and `expo export`. While Metro runs, it packs a worker again once one of its modules changes. If packing fails, such as when a worker imports a package that isn't installed yet, Metro logs the error and keeps the previous pack until one of the modules of the worker changes again.
 
@@ -114,9 +116,28 @@ A worker handling notifications uses the options it's listed with in `workers`.
 
 The addons of all the workers are linked together in one pass, so the workers must agree on `imports` and `defer`, and prebuild fails if they don't. The hosts are combined instead: the plugin links the addons for every host that any of the workers is stowed for, and for all of them if one of the workers isn't narrowed. A worker narrowed to the hosts of one platform is left out on the other, so its addons aren't linked there. Prebuild fails if this leaves a platform with no workers, or if the worker handling notifications on a platform isn't stowed for it.
 
+### Engines
+
+Bare Kit runs the workers with V8 by default. Set `ios.engine` to `'javascriptcore'` to run them with the JavaScriptCore of the system instead, or `android.engine` to `'quickjs'` to run them with QuickJS. Both leave V8 out of the application, which makes it much smaller:
+
+```json
+[
+  "expo-bare-kit",
+  {
+    "workers": ["core.js"],
+    "ios": { "engine": "javascriptcore" },
+    "android": { "engine": "quickjs" }
+  }
+]
+```
+
+The engine applies to every worker on a platform, including the one handling notifications, as an application can only include one.
+
+V8 reserves more virtual memory when it starts than an iOS app may use by default. With V8 on iOS, the plugin therefore adds the `com.apple.developer.kernel.extended-virtual-addressing` entitlement to the application and to the notification extension. EAS Build enables the matching capability for the App IDs on its own. If you manage signing yourself, enable Extended Virtual Addressing for the App IDs in the Apple Developer portal. The plugin doesn't remove the entitlement when you switch to JavaScriptCore, so remove it yourself or run prebuild with `--clean`.
+
 ### Composing the plugin
 
-Another config plugin can apply this one with options of its own, in place of listing it in the `plugins` of the application:
+Another config plugin can apply this one with options of its own, alongside the application or in place of it:
 
 ```js
 const { withPlugins } = require('expo/config-plugins')
@@ -133,7 +154,7 @@ module.exports = function withMyApp(config) {
 }
 ```
 
-The plugin records its options in the config, where `withBareKit()` from `expo-bare-kit/metro` reads them back, so Metro packs the workers either way.
+The options of every application are merged, so a plugin can add its own workers to those of the application. A worker listed more than once must have the same options each time. The engine of a platform must also be the same wherever it's given, and only one application can set up the notifications of a platform. The plugin records the merged options in the config, where `withBareKit()` from `expo-bare-kit/metro` reads them back, so Metro packs the workers either way.
 
 ### iOS notifications
 

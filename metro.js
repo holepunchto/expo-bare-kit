@@ -5,6 +5,7 @@ const { getConfig } = require('expo/config')
 const Bundle = require('bare-bundle')
 const stow = require('bare-stow')
 const target = require('bare-stow-target-react-native')
+const options = require('./plugin/options')
 const workers = require('./plugin/workers')
 
 const prefix = 'expo-bare-kit/workers/'
@@ -25,6 +26,14 @@ module.exports = async function withBareKit(config) {
 
   for (const { entry, options } of workers(pluginOptions(projectRoot))) {
     const worker = new Worker(projectRoot, entry, options, out)
+
+    const existing = packed.get(worker.name)
+
+    if (existing) {
+      throw new Error(
+        `Workers '${existing.specifier}' and '${entry}' are both imported as '${prefix}${worker.name}'`
+      )
+    }
 
     packed.set(worker.name, worker)
   }
@@ -60,19 +69,12 @@ module.exports = async function withBareKit(config) {
 
 class Worker {
   constructor(projectRoot, entry, options, out) {
-    this.entry = path.resolve(projectRoot, entry)
+    const { filename, name } = workers.resolve(projectRoot, entry)
+
+    this.specifier = entry
+    this.entry = filename
     this.options = options
-
-    const relative = path.relative(projectRoot, this.entry)
-
-    if (relative.startsWith('..') || path.isAbsolute(relative)) {
-      throw new Error(`Worker '${entry}' is outside the project`)
-    }
-
-    this.name = relative
-      .split(path.sep)
-      .join('/')
-      .replace(/\.[^./]+$/, '')
+    this.name = name
     this.out = path.join(out, ...this.name.split('/'))
     this.harness = path.join(this.out, 'index.js')
 
@@ -156,12 +158,10 @@ class Worker {
   }
 }
 
-// The plugin records its options in the config, which also covers plugins that
-// apply it with options of their own.
 function pluginOptions(projectRoot) {
   const { exp } = getConfig(projectRoot, { skipSDKVersionRequirement: true })
 
-  const opts = exp._internal?.['expo-bare-kit']
+  const opts = options.recorded(exp)
 
   if (opts === undefined) throw new Error("Plugin 'expo-bare-kit' is not configured")
 
