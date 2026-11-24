@@ -21,14 +21,11 @@ module.exports = function withBareKit(config, opts = {}) {
   ])
 }
 
-function withAddons(config, opts = {}) {
-  const { workers } = opts
-
+function withAddons(config) {
   return withDangerousMod(config, [
     'android',
     async (config) => {
       await link(config, {
-        workers,
         language: 'kotlin',
         languageOptions: { package: `${config.android.package}.addons` },
         out: path.join(config.modRequest.platformProjectRoot, defaults.addons)

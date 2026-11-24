@@ -8,7 +8,11 @@ import type { StowOptions } from 'bare-stow'
  */
 type WorkerOptions = Pick<StowOptions, 'imports' | 'defer' | 'hosts'>
 
-/** A worker, given as its entry point or as a pair of its entry point and its options. */
+/**
+ * A worker, given as its entry point or as a pair of its entry point and its options. The entry
+ * point is a path relative to the project or, if no such file exists, a module specifier resolved
+ * from the project.
+ */
 type Worker = string | [entry: string, options: WorkerOptions]
 
 interface IOSNotificationsOptions {
@@ -30,10 +34,18 @@ interface AndroidNotificationsOptions {
 }
 
 interface BareKitPluginOptions {
-  /** The workers of the application, relative to the project. */
-  workers: Worker[]
-  ios?: { notifications?: IOSNotificationsOptions | null }
-  android?: { notifications?: AndroidNotificationsOptions | null }
+  /** The workers of the application. */
+  workers?: Worker[]
+  ios?: {
+    /** The JavaScript engine of the worklets. Defaults to `'v8'`. */
+    engine?: 'v8' | 'javascriptcore'
+    notifications?: IOSNotificationsOptions | null
+  }
+  android?: {
+    /** The JavaScript engine of the worklets. Defaults to `'v8'`. */
+    engine?: 'v8' | 'quickjs'
+    notifications?: AndroidNotificationsOptions | null
+  }
 }
 
 declare const withBareKit: ConfigPlugin<BareKitPluginOptions>

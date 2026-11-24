@@ -1,7 +1,9 @@
 const fs = require('fs').promises
 const path = require('path')
 const { withPlugins, withXcodeProject, withDangerousMod } = require('@expo/config-plugins')
+const plist = require('@expo/plist').default
 const addSwiftPackage = require('../swift-package')
+const withExtendedVirtualAddressing = require('../with-extended-virtual-addressing')
 const { pack } = require('../../stow')
 const defaults = require('../../defaults').ios
 
@@ -13,14 +15,11 @@ module.exports = function withNotificationServiceExtension(config, opts = {}) {
   ])
 }
 
-function withWorker(config, opts = {}) {
-  const { worker } = opts
-
+function withWorker(config) {
   return withDangerousMod(config, [
     'ios',
     async (config) => {
       await pack(config, {
-        worker,
         language: 'swift',
         hosts: defaults.hosts,
         out: path.join(config.modRequest.platformProjectRoot, defaults.notifications.worker)
@@ -228,25 +227,33 @@ function withProjectFiles(config, opts = {}) {
           '</plist>\n'
       )
 
-      await addFileIfNotExists(
-        path.join(dest, `${targetName}.entitlements`),
-        '<?xml version="1.0" encoding="UTF-8"?>\n' +
-          '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n' +
-          '<plist version="1.0">\n' +
-          '<dict>\n' +
-          '  <key>com.apple.security.application-groups</key>\n' +
-          '  <array>\n' +
-          `    <string>group.${config.ios.bundleIdentifier}</string>\n` +
-          '  </array>\n' +
-          '  <key>com.apple.developer.usernotifications.filtering</key>\n' +
-          '  <true/>\n' +
-          '</dict>\n' +
-          '</plist>\n'
-      )
+      await updateEntitlements(config, path.join(dest, `${targetName}.entitlements`))
 
       return config
     }
   ])
+}
+
+// The extension runs its worker with the engine of the application, so it's
+// signed with the entitlements that the engine requires, also once the file
+// exists.
+async function updateEntitlements(config, dest) {
+  let entitlements
+
+  try {
+    entitlements = plist.parse(await fs.readFile(dest, 'utf8'))
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err
+
+    entitlements = {
+      'com.apple.security.application-groups': [`group.${config.ios.bundleIdentifier}`],
+      'com.apple.developer.usernotifications.filtering': true
+    }
+  }
+
+  withExtendedVirtualAddressing.add(config, entitlements)
+
+  await fs.writeFile(dest, plist.build(entitlements))
 }
 
 async function addFileIfNotExists(dest, contents) {

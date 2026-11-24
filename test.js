@@ -121,6 +121,75 @@ test('another plugin can apply the plugin with its own options', async (t) => {
   t.alike(linked(root), ['arm64-v8a'])
 })
 
+test('the plugin merges the workers of every application', async (t) => {
+  const root = await project(t, {
+    'app.json': app([
+      ['expo-bare-kit', { workers: [['core.js', { hosts: ['android-arm64'] }]] }],
+      'lib/plugin'
+    ]),
+    'core.js': worker,
+    'node_modules/lib/package.json': JSON.stringify({ name: 'lib' }),
+    'node_modules/lib/plugin.js':
+      "const { withPlugins } = require('expo/config-plugins')\n" +
+      '\n' +
+      'module.exports = (config) =>\n' +
+      "  withPlugins(config, [['expo-bare-kit', { workers: [['lib/worker.js', { hosts: ['android-x64'] }]] }]])\n",
+    'node_modules/lib/worker.js': worker
+  })
+
+  await metro(root)
+
+  t.is(typeof addon(root, 'core'), 'string')
+  t.is(typeof addon(root, 'lib/worker'), 'string')
+
+  await prebuild(root)
+
+  t.alike(linked(root), ['arm64-v8a', 'x86_64'])
+})
+
+test('the plugin rejects applications that disagree on the engine', async (t) => {
+  const root = await project(t, {
+    'app.json': app([
+      ['expo-bare-kit', { workers: ['core.js'], android: { engine: 'quickjs' } }],
+      ['expo-bare-kit', { android: { engine: 'v8' } }]
+    ]),
+    'core.js': worker
+  })
+
+  await t.exception(prebuild(root), /Option 'android\.engine' is given as both 'quickjs' and 'v8'/)
+})
+
+test('prebuild links the bindings of the engine', async (t) => {
+  const root = await project(t, {
+    'app.json': app([['expo-bare-kit', { workers: ['core.js'], android: { engine: 'quickjs' } }]]),
+    'core.js': worker
+  })
+
+  await prebuild(root)
+
+  const manifest = fs.readFileSync(path.join(root, 'android', 'bare-kit-addons', 'build.gradle'))
+
+  t.ok(manifest.includes('bare-kit-kotlin-quickjs'))
+})
+
+test('the application requests extended virtual addressing for V8 on iOS', async (t) => {
+  const entitlement = 'com.apple.developer.kernel.extended-virtual-addressing'
+
+  for (const [engine, expected] of [
+    [undefined, true],
+    ['javascriptcore', undefined]
+  ]) {
+    const root = await project(t, {
+      'app.json': app([['expo-bare-kit', { workers: ['core.js'], ios: { engine } }]]),
+      'core.js': worker
+    })
+
+    const { ios } = await introspect(root)
+
+    t.is(ios.entitlements[entitlement], expected, `engine ${engine ?? 'v8'}`)
+  }
+})
+
 test('plugin rejects unknown options of a worker', async (t) => {
   const root = await project(t, {
     'app.json': app([['expo-bare-kit', { workers: [['core.js', { linked: true }]] }]]),
@@ -135,6 +204,7 @@ function app(plugins) {
     expo: {
       name: 'app',
       slug: 'app',
+      ios: { bundleIdentifier: 'com.example.app' },
       android: { package: 'com.example.app' },
       plugins
     }
@@ -164,7 +234,7 @@ async function project(t, files) {
     await fs.promises.writeFile(path.join(root, name), source)
   }
 
-  await fs.promises.mkdir(path.join(root, 'node_modules'))
+  await fs.promises.mkdir(path.join(root, 'node_modules'), { recursive: true })
 
   for (const name of ['bare-os', 'bare-stow-runtime', 'expo']) {
     await fs.promises.symlink(
@@ -192,6 +262,12 @@ async function prebuild(root) {
   const { exp } = getConfig(root, { skipSDKVersionRequirement: true, isModdedConfig: true })
 
   await compileModsAsync(exp, { projectRoot: root, platforms: ['android'] })
+}
+
+function introspect(root) {
+  const { exp } = getConfig(root, { skipSDKVersionRequirement: true, isModdedConfig: true })
+
+  return compileModsAsync(exp, { projectRoot: root, platforms: ['ios'], introspect: true })
 }
 
 function addon(root, name) {
