@@ -22,10 +22,19 @@ module.exports = async function withBareKit(config) {
 
   const out = path.join(projectRoot, '.expo', 'bare-kit')
 
+  const exp = pluginConfig(projectRoot)
+
+  // The bundle of a worker runs on both platforms, so it suits the engines of
+  // both.
+  const targetOptions = {
+    ios: { engine: options.engine(exp, 'ios') },
+    android: { engine: options.engine(exp, 'android') }
+  }
+
   const packed = new Map()
 
-  for (const { entry, options } of workers(pluginOptions(projectRoot))) {
-    const worker = new Worker(projectRoot, entry, options, out)
+  for (const { entry, options: stowOptions } of workers(options.recorded(exp))) {
+    const worker = new Worker(projectRoot, entry, { ...stowOptions, targetOptions }, out)
 
     const existing = packed.get(worker.name)
 
@@ -158,14 +167,14 @@ class Worker {
   }
 }
 
-function pluginOptions(projectRoot) {
+function pluginConfig(projectRoot) {
   const { exp } = getConfig(projectRoot, { skipSDKVersionRequirement: true })
 
-  const opts = options.recorded(exp)
+  if (options.recorded(exp) === undefined) {
+    throw new Error("Plugin 'expo-bare-kit' is not configured")
+  }
 
-  if (opts === undefined) throw new Error("Plugin 'expo-bare-kit' is not configured")
-
-  return opts
+  return exp
 }
 
 function sources({ url, base }) {
