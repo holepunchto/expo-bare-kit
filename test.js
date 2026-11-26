@@ -30,6 +30,22 @@ test('metro packs each worker for its own hosts', async (t) => {
   t.alike(Object.keys(addon(root, 'wide')), ['ios', 'android'])
 })
 
+test('metro converts the workers to CommonJS for a smaller engine', async (t) => {
+  const root = await project(t, {
+    'app.json': app([
+      ['expo-bare-kit', { workers: ['core.mjs'], ios: { engine: 'javascriptcore' } }]
+    ]),
+    'core.mjs': "import 'bare-os'\n"
+  })
+
+  await metro(root)
+
+  const packed = bundle(root, 'core')
+  const key = [...packed.keys()].find((key) => key.endsWith('/core.mjs'))
+
+  t.is(packed.type(key), 'script')
+})
+
 test('prebuild links the addons of the workers for the hosts they combine', async (t) => {
   const root = await project(t, {
     'app.json': app([
@@ -270,12 +286,14 @@ function introspect(root) {
   return compileModsAsync(exp, { projectRoot: root, platforms: ['ios'], introspect: true })
 }
 
-function addon(root, name) {
+function bundle(root, name) {
   const source = fs.readFileSync(path.join(root, '.expo', 'bare-kit', name, 'index.bundle.mjs'))
 
-  const bundle = Bundle.from(JSON.parse(source.toString().replace(/^export default /, '')))
+  return Bundle.from(JSON.parse(source.toString().replace(/^export default /, '')))
+}
 
-  for (const imports of Object.values(bundle.resolutions)) {
+function addon(root, name) {
+  for (const imports of Object.values(bundle(root, name).resolutions)) {
     if (imports['.']?.addon) return imports['.'].addon
   }
 
